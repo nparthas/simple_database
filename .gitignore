@@ -1,5 +1,6 @@
-# Workspace file 
+# .idea files
 workspace.xml
+vcs.xml
 
 # Prerequisites
 *.d

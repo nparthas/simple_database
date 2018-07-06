@@ -13,4 +13,10 @@ string
 -
 limits
 -
+sstream
+-
+vector
+-
+iterator
+-
 
