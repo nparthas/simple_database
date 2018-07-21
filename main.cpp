@@ -33,7 +33,7 @@ namespace field_sizes { // byte size of fields and offsets for packing
 
 typedef struct Row_t {
     int32_t id;
-    std::string username;
+    std::string username;  // need to validate these sizes in input to make sure that they are at max 255 and 32 bits 
     std::string email;
 
     Row_t() : id(), username(), email() {}
@@ -74,19 +74,6 @@ int main(int argc, char *argv[]) {
 
     auto c = new char;
     auto row = new CompactRow();
-    std::cout << field_sizes::kRowSize << std::endl;
-    std::cout << sizeof(row) << std::endl;
-    std::cout << row->row[10] << std::endl;
-    std::cout << c << std::endl;
-
-    auto count = 0;
-    for ( auto r : row->row) {
-        std::cout << r << std::endl;
-        count ++;
-    }
-
-    std::cout << count << std::endl;
-    std::cout << row->row[0] << std::endl;
 
     while (true) {
         print_prompt();
