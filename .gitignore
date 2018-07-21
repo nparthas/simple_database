@@ -1,6 +1,12 @@
+# cmake dir
+cmake-build-debug
+
 # .idea files
 workspace.xml
 vcs.xml
+
+# make build path 
+build/*
 
 # Prerequisites
 *.d

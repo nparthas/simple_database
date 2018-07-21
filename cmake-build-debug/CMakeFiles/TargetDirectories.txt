@@ -1,3 +1,0 @@
-/home/neilp/c_cpp/simple_database/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/neilp/c_cpp/simple_database/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/neilp/c_cpp/simple_database/cmake-build-debug/CMakeFiles/simple_database.dir
