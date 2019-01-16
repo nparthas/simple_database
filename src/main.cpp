@@ -1,58 +1,30 @@
 #include <iostream>
 #include <string>
-#include <limits>
-#include <sstream>
-#include <vector>
-#include <iterator>
-#include <cstring>
 
-#include "../include/project/statements.h"
-#include "../include/project/parser.h"
-#include "../include/project/store.h"
+void print_prompt() { std::cout << "db > "; }
 
+std::string read_input(std::string &buf) {
+    std::getline(std::cin, buf);
+
+    if (std::cin.bad() || std::cin.fail()) {
+        std::cout << "error reading input";
+        exit(EXIT_FAILURE);
+    }
+    return buf;
+}
 
 int main(int argc, char *argv[]) {
-    Table *table = new Table; // may be the cause
-
+    std::string buf;
     while (true) {
         print_prompt();
-        std::string input_buf = read_input();
+        read_input(buf);
 
-        if (input_buf[0] == '.') {
-            switch (do_meta_command(input_buf)) {
-                case (kMetaCommandSuccess):
-                    continue;
-                case (kMetaCommandUnrecognizedCommand):
-                    std::cout << "unrecognized meta command: " << input_buf << std::endl;
-                    continue;
-            }
+        if (buf.compare(".exit") == 0) {
+            exit(EXIT_SUCCESS);
+        } else {
+            std::cout << "Unrecognized command: " << buf << std::endl;
         }
-
-        Statement statement;
-        switch (prepare_statement(input_buf, &statement)) {
-            case (kPrepareSuccess):
-                break;
-            case (kPrepareSyntaxError):
-                std::cout << "syntax error in: " << input_buf << std::endl;
-                continue;
-            case (kPrepareUnrecognizedStatement):
-                std::cout << "unrecognized keyword at the start of: " << input_buf << std::endl;
-                continue;
-        }
-
-        switch (execute_statement(&statement, table)) {
-            case (kExecuteSuccess):
-                std::cout << "Executed" << std::endl;
-                break;
-            case (kExecuteTableFull):
-                std::cout << "Error: table full" << std::endl;
-                break;
-        }
-
-        if (input_buf.empty()) break; // remove infinite loop warning
     }
 
     return 0;
 }
-
-
