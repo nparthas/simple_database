@@ -4,6 +4,7 @@ cmake-build-debug
 # .idea files
 workspace.xml
 vcs.xml
+.vscode/
 
 # make build path 
 build/*
