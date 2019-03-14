@@ -4,12 +4,14 @@ CXX ?= g++
 SRC_PATH = src
 BUILD_PATH = build
 BIN_PATH = $(BUILD_PATH)/bin
+TEST_PATH = test
 
 # executable # 
 BIN_NAME = simpledb 
 
 # extensions #
 SRC_EXT = cpp
+TEST_EXT = py
 
 # code lists #
 # Find all source files in the source directory, sorted by
@@ -20,6 +22,9 @@ SOURCES = $(shell find $(SRC_PATH) -name '*.$(SRC_EXT)' | sort -k 1nr | cut -f2-
 OBJECTS = $(SOURCES:$(SRC_PATH)/%.$(SRC_EXT)=$(BUILD_PATH)/%.o)
 # Set the dependency files that will be used to add header dependencies
 DEPS = $(OBJECTS:.o=.d)
+
+# find the basename of all .py files in the test directory, use for testing
+TEST_SOURCES = $(shell find $(TEST_PATH) -name '*.$(TEST_EXT)' -exec basename {} ';')
 
 # flags #
 COMPILE_FLAGS = -std=c++11 -Wall -Wextra -g
@@ -56,6 +61,16 @@ all: $(BIN_PATH)/$(BIN_NAME)
 	@echo "Making symlink: $(BIN_NAME) -> $<"
 	@$(RM) $(BIN_NAME)
 	@ln -s $(BIN_PATH)/$(BIN_NAME) $(BIN_NAME)
+
+# @echo "$(TEST_SOURCES)"
+# $(shell export $PATH = pwd/$(TEST_PATH):$$PATH; python3 -m unittest -v $(TEST_SOURCES))
+# export PATH = $(shell pwd)/$(TEST_PATH):$$PATH;
+# export PATH = $(shell pwd)/$(TEST_PATH):$$PATH
+# @echo $(shell pwd)/$(TEST_PATH)
+# export PATH=$(shell pwd)/$(TEST_PATH):$$PATH; $(shell python3 -m unittest $(TEST_SOURCES))
+.PHONY: test
+test: release
+	cd $(TEST_PATH) && python3 -m unittest $(TEST_SOURCES)
 
 # Creation of the executable
 $(BIN_PATH)/$(BIN_NAME): $(OBJECTS)

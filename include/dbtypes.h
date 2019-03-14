@@ -19,41 +19,41 @@ const size_t kRowsPerPage = kPagesize / kRowsize;
 const size_t kTableMaxRows = kRowsPerPage * kTableMaxPages;
 }  // namespace sizes
 
-typedef enum MetaCommandResult_t {
+enum MetaCommandResult {
     kMetaCommandSuccess,
     KMetaCommandUnrecognized,
-} MetaCommandResult;
+};
 
-typedef enum PrepareResult_t {
+enum PrepareResult {
     kPrepareSuccess,
     kPrepareSyntaxError,
     kPrepareUnrecognizedStatement,
-} PrepareResult;
+};
 
-typedef enum StatementType_t {
+enum StatementType {
     kStatementSelect,
     kStatementInsert,
-} StatementType;
+};
 
-typedef enum ExecuteResult_t {
+enum ExecuteResult {
     kExecuteSuccess,
     kExecuteTableFull,
     kExecuteNotImplemented,
-} ExecuteResult;
+};
 
-typedef struct Row_t {
+struct Row {
     uint32_t Id;
     char Username[sizes::kColUsername];
     char Email[sizes::kColEmail];
-} Row;
+};
 
-typedef struct Statement_t {
+struct Statement {
     StatementType type;
     Row insert_row;
-} Statement;
+};
 
-typedef struct Table_t {
+struct Table {
     void *pages[sizes::kTableMaxPages];
     uint32_t num_rows;
-} Table;
+};
 }  // namespace simpledb

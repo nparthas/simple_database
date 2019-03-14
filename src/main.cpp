@@ -5,7 +5,7 @@
 #include <string>
 #include "../include/dbtypes.h"
 
-namespace simpledb {
+namespace {
 
 // trim from start (in place)
 static inline void ltrim(std::string &s) {
@@ -27,15 +27,25 @@ static inline std::string trim(std::string &s) {
     rtrim(s);
     return s;
 }
+}  // namespace
 
+namespace simpledb {
 void print_prompt() { std::cout << "db > "; }
 
 std::string read_input(std::string &buf) {
     std::getline(std::cin, buf);
 
-    if (std::cin.bad() || std::cin.fail()) {
+    // ensure the badbit is not set or we have the failbit set witout the eof
+    // bit
+    if (std::cin.bad() || (std::cin.fail() && !std::cin.eof())) {
         std::cout << "error reading input";
         exit(EXIT_FAILURE);
+    }
+
+    // we failbit was set by empty newline, reset the flag, we are good
+    if (std::cin.fail()) {
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cin.clear();
     }
 
     trim(buf);
@@ -114,8 +124,8 @@ ExecuteResult execute_insert(Statement const &statement, Table &table) {
 }
 
 void print_row(Row const &row) {
-    std::cout << "[" << row.Id << " " << row.Username << " " << row.Email << "]"
-              << std::endl;
+    std::cout << "[" << row.Id << ", " << row.Username << ", " << row.Email
+              << "]" << std::endl;
 }
 
 ExecuteResult execute_select(Statement const &statement, Table &table) {
@@ -149,7 +159,7 @@ int main(int argc, char *argv[]) {
         print_prompt();
         read_input(buf);
 
-        if (buf == "") continue;
+        if (buf.empty()) continue;
 
         if (buf[0] == '.') {
             switch (do_meta_command(buf)) {
