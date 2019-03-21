@@ -53,7 +53,9 @@ struct Statement {
 };
 
 struct Table {
-    void *pages[sizes::kTableMaxPages];
+    void *pages[sizes::kTableMaxPages] = {
+        NULL,
+    };
     uint32_t num_rows;
 };
 }  // namespace simpledb

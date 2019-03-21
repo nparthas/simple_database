@@ -150,10 +150,10 @@ ExecuteResult execute_statement(Statement const &statement, Table &table) {
 }  // namespace simpledb
 
 using namespace simpledb;
-int main(int argc, char *argv[]) {
+int main(void) {
     std::string buf;
-    Table table;
-    table.num_rows = 0;
+    Table *table = (Table *)calloc(1, sizeof(Table));
+    table->num_rows = 0;
 
     while (true) {
         print_prompt();
@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
                 continue;
         }
 
-        switch (execute_statement(statement, table)) {
+        switch (execute_statement(statement, *table)) {
             case (kExecuteSuccess):
                 std::cout << "Executed" << std::endl;
                 break;
