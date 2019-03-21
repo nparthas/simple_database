@@ -43,8 +43,8 @@ enum ExecuteResult {
 
 struct Row {
     uint32_t Id;
-    char Username[sizes::kColUsername];
-    char Email[sizes::kColEmail];
+    char Username[sizes::kColUsername + 1];
+    char Email[sizes::kColEmail + 1];
 };
 
 struct Statement {

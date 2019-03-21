@@ -89,7 +89,7 @@ void serialize_row(void *dest, const Row &source) {
     std::memcpy(dest + sizes::kIdOffset, &source.Id, sizes::kIdSize);
     std::memcpy(dest + sizes::kUsernameOffset, &source.Username,
                 sizes::kUsernameSize);
-    std::memcpy(dest + sizes::kEmailOffset, &source.Email, sizes::kEmailOffset);
+    std::memcpy(dest + sizes::kEmailOffset, &source.Email, sizes::kEmailSize);
 }
 
 void deserialize_row(Row &dest, const void *source) {
@@ -97,6 +97,11 @@ void deserialize_row(Row &dest, const void *source) {
     std::memcpy(&dest.Username, source + sizes::kUsernameOffset,
                 sizes::kUsernameSize);
     std::memcpy(&dest.Email, source + sizes::kEmailOffset, sizes::kEmailSize);
+
+    // we do not copy the null terminator, ensure it's always there if the field
+    // is full
+    dest.Username[sizes::kUsernameSize] = '\0';
+    dest.Email[sizes::kEmailSize] = '\0';
 }
 
 void *row_slot(Table &table, uint32_t row_num) {
