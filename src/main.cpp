@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include "../include/dbtypes.h"
 
 namespace {
@@ -60,22 +61,34 @@ MetaCommandResult do_meta_command(std::string const &buf) {
     }
 }
 
-bool assign_insert_statement_args(std::string const &buf,
-                                  Statement &statement) {
+PrepareResult assign_insert_statement_args(std::string const &buf,
+                                           Statement &statement) {
     std::istringstream iss(buf);
+    std::string token;
 
     iss.ignore(6);  // ignore insert
-    iss >> statement.insert_row.Id >> statement.insert_row.Username >>
-        statement.insert_row.Email;
+    iss >> statement.insert_row.Id;
+    if (iss.fail()) return kPrepareSyntaxError;
+    if (statement.insert_row.Id < 0) return kPrepareNegativeId;
 
-    return (iss.eof() & !(iss.bad() || iss.fail()));
+    // parse username 32 characters
+    iss >> token;
+    if (iss.fail()) return kPrepareSyntaxError;
+    if (token.length() > sizes::kUsernameSize) return kPrepareFieldTooLong;
+    std::strcpy(statement.insert_row.Username, token.c_str());
+
+    iss >> token;
+    if (iss.fail()) return kPrepareSyntaxError;
+    if (token.length() > sizes::kEmailSize) return kPrepareSyntaxError;
+    std::strcpy(statement.insert_row.Email, token.c_str());
+
+    return (iss.eof()) ? kPrepareSuccess : kPrepareSyntaxError;
 }
 
 PrepareResult prepare_statement(std::string const &buf, Statement &statement) {
     if (buf.compare(0, 6, "insert") == 0) {
         statement.type = kStatementInsert;
-        bool assigned = assign_insert_statement_args(buf, statement);
-        return (assigned) ? kPrepareSuccess : kPrepareSyntaxError;
+        return assign_insert_statement_args(buf, statement);
     }
     if (buf == "select") {
         statement.type = kStatementSelect;
@@ -184,6 +197,12 @@ int main(void) {
             case (kPrepareSyntaxError):
                 std::cout << "Syntax error. Could not parse statement"
                           << std::endl;
+                continue;
+            case (kPrepareFieldTooLong):
+                std::cout << "Field is too long" << std::endl;
+                continue;
+            case (kPrepareNegativeId):
+                std::cout << "Id cannot be negative" << std::endl;
                 continue;
             case (kPrepareUnrecognizedStatement):
                 std::cout << "Unrecognized command at the start of " << buf

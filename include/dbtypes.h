@@ -27,6 +27,8 @@ enum MetaCommandResult {
 enum PrepareResult {
     kPrepareSuccess,
     kPrepareSyntaxError,
+    kPrepareFieldTooLong,
+    kPrepareNegativeId,
     kPrepareUnrecognizedStatement,
 };
 
@@ -42,7 +44,7 @@ enum ExecuteResult {
 };
 
 struct Row {
-    uint32_t Id;
+    int32_t Id;
     char Username[sizes::kColUsername + 1];
     char Email[sizes::kColEmail + 1];
 };
