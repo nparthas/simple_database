@@ -27,9 +27,9 @@ DEPS = $(OBJECTS:.o=.d)
 TEST_SOURCES = $(shell find $(TEST_PATH) -name '*.$(TEST_EXT)' -exec basename {} ';')
 
 # flags #
-COMPILE_FLAGS = -std=c++11 -Wall -Wextra -g
-COMPILE_FLAGS += -Wno-pointer-arith # temporary
-INCLUDES = -I include/ -I /usr/local/include
+COMPILE_FLAGS = -std=c++11 -W -Wall -pedantic -Wextra -Werror -g
+# COMPILE_FLAGS += -Wno-pointer-arith # temporary
+INCLUDES = -I include/ -I /usr/local/include -I include/project/
 # Space-separated pkg-config libraries used by this project
 LIBS =
 

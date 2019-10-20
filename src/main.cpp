@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "../include/dbtypes.h"
+#include "dbtypes.h"
 
 namespace {
 
@@ -53,8 +53,11 @@ std::string read_input(std::string &buf) {
     return buf;
 }
 
-MetaCommandResult do_meta_command(std::string const &buf) {
+void db_close(Table *table);
+
+MetaCommandResult do_meta_command(std::string const &buf, Table *table) {
     if (buf == ".exit") {
+        db_close(table);
         exit(EXIT_SUCCESS);
     } else {
         return KMetaCommandUnrecognized;
@@ -98,13 +101,18 @@ PrepareResult prepare_statement(std::string const &buf, Statement &statement) {
     return kPrepareUnrecognizedStatement;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-arith"
 void serialize_row(void *dest, const Row &source) {
-    std::memcpy(dest + sizes::kIdOffset, &source.Id, sizes::kIdSize);
+    std::memcpy(dest + sizes::kIdOffset, &source.Id, sizes::kIdSize);  // NOLINT
     std::memcpy(dest + sizes::kUsernameOffset, &source.Username,
                 sizes::kUsernameSize);
     std::memcpy(dest + sizes::kEmailOffset, &source.Email, sizes::kEmailSize);
 }
+#pragma GCC diagnostic pop
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-arith"
 void deserialize_row(Row &dest, const void *source) {
     std::memcpy(&dest.Id, source + sizes::kIdOffset, sizes::kIdSize);
     std::memcpy(&dest.Username, source + sizes::kUsernameOffset,
@@ -116,19 +124,18 @@ void deserialize_row(Row &dest, const void *source) {
     dest.Username[sizes::kUsernameSize] = '\0';
     dest.Email[sizes::kEmailSize] = '\0';
 }
+#pragma GCC diagnostic pop
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-arith"
 void *row_slot(Table &table, uint32_t row_num) {
     uint32_t page_num = row_num / sizes::kRowsPerPage;
-    void *page = table.pages[page_num];
-    if (!page) {
-        table.pages[page_num] = malloc(sizes::kPagesize);
-        page = table.pages[page_num];
-    }
-
+    void *page = table.pager->GetPage(page_num);
     uint32_t row_offset = row_num % sizes::kRowsPerPage;
     uint32_t byte_offset = row_offset * sizes::kRowsize;
     return page + byte_offset;
 }
+#pragma GCC diagnostic pop
 
 ExecuteResult execute_insert(Statement const &statement, Table &table) {
     if (table.num_rows >= sizes::kTableMaxRows) {
@@ -146,7 +153,8 @@ void print_row(Row const &row) {
               << "]" << std::endl;
 }
 
-ExecuteResult execute_select(Statement const &statement, Table &table) {
+ExecuteResult execute_select(__attribute__((unused)) Statement const &statement,
+                             Table &table) {
     Row row;
     for (uint32_t i = 0; i < table.num_rows; i++) {
         deserialize_row(row, row_slot(table, i));
@@ -165,22 +173,51 @@ ExecuteResult execute_statement(Statement const &statement, Table &table) {
             return kExecuteNotImplemented;
     }
 }
+
+Table db_open(std::string filename) {
+    Pager *pager = new Pager(filename);
+    uint32_t num_rows = pager->file_length / sizes::kRowsize;
+
+    Table table;
+    table.pager = pager;
+    table.num_rows = num_rows;
+    return table;
+}
+
+void db_close(Table *table) {
+    Pager *pager = table->pager;
+    pager->FlushPages(table->num_rows);
+
+    if (pager->Close() != 0) {
+        std::cout << "Could not close file" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    delete pager;
+}
+
 }  // namespace simpledb
 
 using namespace simpledb;
 int main(void) {
     std::string buf;
-    Table *table = (Table *)calloc(1, sizeof(Table));
-    table->num_rows = 0;
+    // TODO:: get file name from cli
+    Table table = db_open("dbfile");
 
+    // int i = 0;
     while (true) {
         print_prompt();
         read_input(buf);
+        // if (i++ < 1401) {
+        //     buf = "insert 1 a a";
+        // } else {
+        //     buf = ".exit";
+        // }
 
         if (buf.empty()) continue;
 
         if (buf[0] == '.') {
-            switch (do_meta_command(buf)) {
+            switch (do_meta_command(buf, &table)) {
                 case (kMetaCommandSuccess):
                     continue;
                 case (KMetaCommandUnrecognized):
@@ -210,7 +247,7 @@ int main(void) {
                 continue;
         }
 
-        switch (execute_statement(statement, *table)) {
+        switch (execute_statement(statement, table)) {
             case (kExecuteSuccess):
                 std::cout << "Executed" << std::endl;
                 break;

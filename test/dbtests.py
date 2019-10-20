@@ -45,6 +45,10 @@ def do_sequence(commands: List[str]) -> List[str]:
 
 class TestInsertSelect(unittest.TestCase):
 
+    def setUp(self):
+        if os.path.isfile("dbfile"):
+            os.remove("dbfile")
+
     def test_insert_select_row(self):
         expected_result = [
             "db > Executed",
@@ -121,6 +125,35 @@ class TestInsertSelect(unittest.TestCase):
 
         commands = [
             "insert -1 a b",
+            "select",
+            ".exit",
+        ]
+
+        actual_result = do_sequence(commands)
+        self.assertEqual(actual_result, expected_result)
+
+    def test_table_persists(self):
+
+        expected_result = [
+            "db > Executed",
+            "db > ",
+        ]
+
+        commands = [
+            "insert 1 a b",
+            ".exit"
+        ]
+
+        actual_result = do_sequence(commands)
+        self.assertEqual(actual_result, expected_result)
+
+        expected_result = [
+            "db > [1, a, b]",
+            "Executed",
+            "db > ",
+        ]
+
+        commands = [
             "select",
             ".exit",
         ]
