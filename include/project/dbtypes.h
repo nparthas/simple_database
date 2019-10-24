@@ -61,18 +61,13 @@ struct Statement {
 
 class Pager {
    public:
-    std::string filename;
-    std::fstream file;
-    uint32_t file_length;
-    void *pages[sizes::kTableMaxPages];
-
     explicit Pager(std::string const &filename);
 
     ~Pager();
 
-    Pager(const Pager &pager);
-
     Pager(Pager &&pager) noexcept;
+
+    Pager &operator=(Pager &&bigint) noexcept;
 
     void *GetPage(uint32_t pagenum);
 
@@ -82,11 +77,30 @@ class Pager {
 
     bool Close();
 
+    uint32_t file_length() { return this->file_length_; }
+
+   private:
+    std::string filename_;
+    std::fstream file_;
+    uint32_t file_length_;
+    void *pages_[sizes::kTableMaxPages];
+
     void Dump(int pagenum);
 };
 
-struct Table {
-    Pager *pager;
-    uint32_t num_rows;
+class Table {
+   public:
+    uint32_t num_rows_;  // should be private
+
+    Table(std::string const &filename);
+
+    ~Table();
+
+    void *GetPage(uint32_t pagenum) { return this->pager_->GetPage(pagenum); }
+
+    uint32_t num_rows() { return this->num_rows_; }
+
+   private:
+    Pager *pager_;
 };
 }  // namespace simpledb
