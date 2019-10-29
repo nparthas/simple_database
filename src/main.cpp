@@ -126,23 +126,14 @@ void deserialize_row(Row &dest, const void *source) {
 }
 #pragma GCC diagnostic pop
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpointer-arith"
-void *row_slot(Table &table, uint32_t row_num) {
-    uint32_t page_num = row_num / sizes::kRowsPerPage;
-    void *page = table.GetPage(page_num);
-    uint32_t row_offset = row_num % sizes::kRowsPerPage;
-    uint32_t byte_offset = row_offset * sizes::kRowsize;
-    return page + byte_offset;
-}
-#pragma GCC diagnostic pop
-
 ExecuteResult execute_insert(Statement const &statement, Table &table) {
     if (table.num_rows() >= sizes::kTableMaxRows) {
         return kExecuteTableFull;
     }
 
-    serialize_row(row_slot(table, table.num_rows()), statement.insert_row);
+    Cursor cursor = Cursor(&table, false);
+
+    serialize_row(cursor.Value(), statement.insert_row);
     table.num_rows_++;
 
     return kExecuteSuccess;
@@ -155,13 +146,17 @@ void print_row(Row const &row) {
 
 ExecuteResult execute_select(__attribute__((unused)) Statement const &statement,
                              Table &table) {
+    Cursor cursor = Cursor(&table, true);
     Row row;
-    for (uint32_t i = 0; i < table.num_rows(); i++) {
-        deserialize_row(row, row_slot(table, i));
+
+    while (!cursor.end_of_table()) {
+        deserialize_row(row, cursor.Value());
         print_row(row);
+        cursor.Advance();
     }
+
     return kExecuteSuccess;
-}
+}  // namespace simpledb
 
 ExecuteResult execute_statement(Statement const &statement, Table &table) {
     switch (statement.type) {
@@ -174,7 +169,7 @@ ExecuteResult execute_statement(Statement const &statement, Table &table) {
     }
 }
 
-Table db_open(std::string filename) { return Table(filename); }
+Table db_open(std::string const filename) { return Table(filename); }
 
 void db_close(Table &table) { table.~Table(); }
 

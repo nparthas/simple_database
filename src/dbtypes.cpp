@@ -181,4 +181,31 @@ Table::~Table() {
 
     delete this->pager_;
 }
+
+Cursor::Cursor(Table *table, bool start) {
+    this->table_ = table;
+    this->row_num_ = (start) ? 0 : table->num_rows();
+    this->end_of_table_ = (start) ? this->table_->num_rows() == 0 : true;
+}
+
+Cursor::~Cursor() {}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-arith"
+void *Cursor::Value() {
+    uint32_t page_num = this->row_num_ / sizes::kRowsPerPage;
+    void *page = this->table_->GetPage(page_num);
+    uint32_t row_offset = this->row_num_ % sizes::kRowsPerPage;
+    uint32_t byte_offset = row_offset * sizes::kRowsize;
+    return page + byte_offset;
+}
+#pragma GCC diagnostic pop
+
+void Cursor::Advance() {
+    this->row_num_++;
+    if (this->row_num_ >= this->table_->num_rows()) {
+        this->end_of_table_ = true;
+    }
+}
+
 }  // namespace simpledb

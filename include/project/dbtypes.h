@@ -2,26 +2,27 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 namespace simpledb {
 
 namespace sizes {
-const size_t kColUsername = 32;
-const size_t kColEmail = 255;
+constexpr size_t kColUsername = 32;
+constexpr size_t kColEmail = 255;
 
-const size_t kIdSize = sizeof(uint32_t);  // id is backed but a uint32_t
-const size_t kUsernameSize = kColUsername * sizeof(char);
-const size_t kEmailSize = kColEmail * sizeof(char);
-const size_t kRowsize = kIdSize + kUsernameSize + kEmailSize;
+constexpr size_t kIdSize = sizeof(uint32_t);  // id is backed but a uint32_t
+constexpr size_t kUsernameSize = kColUsername * sizeof(char);
+constexpr size_t kEmailSize = kColEmail * sizeof(char);
+constexpr size_t kRowsize = kIdSize + kUsernameSize + kEmailSize;
 
-const size_t kIdOffset = 0;
-const size_t kUsernameOffset = kIdOffset + kIdSize;
-const size_t kEmailOffset = kUsernameOffset + kUsernameSize;
+constexpr size_t kIdOffset = 0;
+constexpr size_t kUsernameOffset = kIdOffset + kIdSize;
+constexpr size_t kEmailOffset = kUsernameOffset + kUsernameSize;
 
-const size_t kPageSize = 4096;
-const size_t kTableMaxPages = 100;
-const size_t kRowsPerPage = kPageSize / kRowsize;
-const size_t kTableMaxRows = kRowsPerPage * kTableMaxPages;
+constexpr size_t kPageSize = 4096;
+constexpr size_t kTableMaxPages = 100;
+constexpr size_t kRowsPerPage = kPageSize / kRowsize;
+constexpr size_t kTableMaxRows = kRowsPerPage * kTableMaxPages;
 }  // namespace sizes
 
 enum MetaCommandResult {
@@ -46,6 +47,11 @@ enum ExecuteResult {
     kExecuteSuccess,
     kExecuteTableFull,
     kExecuteNotImplemented,
+};
+
+enum NodeType {
+    kNodeInternal,
+    kNodeLeaf,
 };
 
 struct Row {
@@ -77,7 +83,7 @@ class Pager {
 
     bool Close();
 
-    uint32_t file_length() { return this->file_length_; }
+    uint32_t file_length() const { return this->file_length_; }
 
    private:
     std::string filename_;
@@ -98,9 +104,27 @@ class Table {
 
     void *GetPage(uint32_t pagenum) { return this->pager_->GetPage(pagenum); }
 
-    uint32_t num_rows() { return this->num_rows_; }
+    uint32_t num_rows() const { return this->num_rows_; }
 
    private:
     Pager *pager_;
 };
+
+class Cursor {
+   public:
+    Table *table_;
+    uint32_t row_num_;
+    bool end_of_table_;
+
+    Cursor(Table *table, bool start);
+
+    void *Value();
+
+    void Advance();
+
+    ~Cursor();
+
+    bool end_of_table() const { return this->end_of_table_; }
+};
+
 }  // namespace simpledb
