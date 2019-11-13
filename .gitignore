@@ -6,6 +6,9 @@ workspace.xml
 vcs.xml
 .vscode/
 
+# python ven
+.env/
+
 # make build path 
 build/*
 

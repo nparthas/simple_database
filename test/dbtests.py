@@ -67,14 +67,15 @@ class TestInsertSelect(unittest.TestCase):
         self.assertEqual(actual_result, expected_result)
 
     def test_error_message_on_full_tabale(self):
-        expected_result = "db > Error: table full"
+        expected_result = ["Executed", "db > Error: table full"]
 
         commands = ["insert {0} user{0} email{0}@email.com".format(
             i) for i in range(1401)]
         commands += [".exit"]
 
         actual_result = do_sequence(commands)
-        self.assertEqual(actual_result[-2], expected_result)
+        self.assertEqual(actual_result[-3], expected_result[0])
+        self.assertEqual(actual_result[-2], expected_result[1])
 
     def test_table_allows_max_length_fields(self):
         username = "a" * 32
@@ -156,6 +157,48 @@ class TestInsertSelect(unittest.TestCase):
         commands = [
             "select",
             ".exit",
+        ]
+
+        actual_result = do_sequence(commands)
+        self.assertEqual(actual_result, expected_result)
+
+    def test_constants_are_constant(self):
+        expected_result = [
+            "db > Constants: ",
+            "Row Size: 293",
+            "Common Node Header size: 6",
+            "Leaf Node Header Size: 10",
+            "Leaf Node Cell Size: 297",
+            "Leaf Node Space For Cells: 4086",
+            "Leaf Node Max Cell: 13",
+            "db > "
+        ]
+
+        commands = [
+            ".constants",
+            ".exit"
+        ]
+
+        actual_result = do_sequence(commands)
+        self.assertEqual(actual_result, expected_result)
+
+    def test_print_btree(self):
+        expected_result = [
+            "db > Executed",
+            "db > Executed",
+            "db > Executed",
+            "db > Tree:",
+            "  Leaf size: 3",
+            "    0 : 3",
+            "    1 : 1",
+            "    2 : 2",
+            "db > "
+        ]
+
+        commands = [
+            *[f"insert {x} user{x} user{x}@email.com" for x in [3, 1, 2]],
+            ".btree",
+            ".exit"
         ]
 
         actual_result = do_sequence(commands)

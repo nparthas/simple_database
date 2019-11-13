@@ -1,10 +1,11 @@
-CXX ?= g++
+CXX := g++-9
 
 # path #
 SRC_PATH = src
 BUILD_PATH = build
 BIN_PATH = $(BUILD_PATH)/bin
 TEST_PATH = test
+DB_FILE  = dbfile
 
 # executable # 
 BIN_NAME = simpledb 
@@ -27,7 +28,8 @@ DEPS = $(OBJECTS:.o=.d)
 TEST_SOURCES = $(shell find $(TEST_PATH) -name '*.$(TEST_EXT)' -exec basename {} ';')
 
 # flags #
-COMPILE_FLAGS = -std=c++11 -W -Wall -pedantic -Wextra -Werror -g
+#-Wno-Wpointer-arith
+COMPILE_FLAGS = -std=c++11 -W -Wall -Wpedantic -Wextra -Werror -g
 # COMPILE_FLAGS += -Wno-pointer-arith # temporary
 INCLUDES = -I include/ -I /usr/local/include -I include/project/
 # Space-separated pkg-config libraries used by this project
@@ -35,6 +37,10 @@ LIBS =
 
 .PHONY: default_target
 default_target: release
+
+.PHONY: start
+start: release
+	./$(BIN_NAME)
 
 .PHONY: release
 release: export CXXFLAGS := $(CXXFLAGS) $(COMPILE_FLAGS)
@@ -54,6 +60,8 @@ clean:
 	@echo "Deleting directories"
 	@$(RM) -r $(BUILD_PATH)
 	@$(RM) -r $(BIN_PATH)
+	@echo "Deleting dbfile"
+	@$(RM) $(DB_FILE)
 
 # checks the executable and symlinks to the output
 .PHONY: all
@@ -70,7 +78,7 @@ all: $(BIN_PATH)/$(BIN_NAME)
 # export PATH=$(shell pwd)/$(TEST_PATH):$$PATH; $(shell python3 -m unittest $(TEST_SOURCES))
 .PHONY: test
 test: release
-	cd $(TEST_PATH) && python3 -m unittest $(TEST_SOURCES)
+	cd $(TEST_PATH) && python3 -m unittest -v $(TEST_SOURCES)
 
 # Creation of the executable
 $(BIN_PATH)/$(BIN_NAME): $(OBJECTS)

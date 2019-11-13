@@ -7,7 +7,6 @@
 #include "dbtypes.h"
 
 namespace {
-
 // trim from start (in place)
 static inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(),
@@ -28,10 +27,33 @@ static inline std::string trim(std::string &s) {
     rtrim(s);
     return s;
 }
+
 }  // namespace
 
 namespace simpledb {
 void print_prompt() { std::cout << "db > "; }
+
+void print_constants() {
+    std::cout << "Row Size: " << sizes::kRowSize << std::endl;
+    std::cout << "Common Node Header size: " << sizes::kCommonNodeHeaderSize
+              << std::endl;
+    std::cout << "Leaf Node Header Size: " << sizes::kLeafNodeHeaderSize
+              << std::endl;
+    std::cout << "Leaf Node Cell Size: " << sizes::kLeafNodeCellSize
+              << std::endl;
+    std::cout << "Leaf Node Space For Cells: " << sizes::kLeafNodeSpaceForCells
+              << std::endl;
+    std::cout << "Leaf Node Max Cell: " << sizes::kLeafNodeMaxCells
+              << std::endl;
+}
+
+void print_leaf_node(LeafNode node) {
+    uint32_t num_cells = *node.NumCells();
+    std::cout << "  Leaf size: " << *node.NumCells() << std::endl;
+    for (uint32_t i = 0; i < num_cells; i++) {
+        std::cout << "    " << i << " : " << *node.Key(i) << std::endl;
+    }
+}
 
 std::string read_input(std::string &buf) {
     std::getline(std::cin, buf);
@@ -58,11 +80,20 @@ void db_close(Table &table);
 MetaCommandResult do_meta_command(std::string const &buf, Table &table) {
     if (buf == ".exit") {
         db_close(table);
+        // TODO:: exit from main
         exit(EXIT_SUCCESS);
+    } else if (buf == ".constants") {
+        std::cout << "Constants: " << std::endl;
+        print_constants();
+        return kMetaCommandSuccess;
+    } else if (buf == ".btree") {
+        std::cout << "Tree:" << std::endl;
+        print_leaf_node(LeafNode(table.GetPage(0)));
+        return kMetaCommandSuccess;
     } else {
         return KMetaCommandUnrecognized;
     }
-}
+}  // namespace simpledb
 
 PrepareResult assign_insert_statement_args(std::string const &buf,
                                            Statement &statement) {
@@ -101,19 +132,28 @@ PrepareResult prepare_statement(std::string const &buf, Statement &statement) {
     return kPrepareUnrecognizedStatement;
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpointer-arith"
-void serialize_row(void *dest, const Row &source) {
-    std::memcpy(dest + sizes::kIdOffset, &source.Id, sizes::kIdSize);
-    std::memcpy(dest + sizes::kUsernameOffset, &source.Username,
-                sizes::kUsernameSize);
-    std::memcpy(dest + sizes::kEmailOffset, &source.Email, sizes::kEmailSize);
-}
-#pragma GCC diagnostic pop
+ExecuteResult execute_insert(Statement const &statement, Table &table) {
+    LeafNode node = LeafNode(table.GetPage(table.root_page_num()));
 
+    if (*node.NumCells() >= sizes::kLeafNodeMaxCells) {
+        return kExecuteTableFull;
+    }
+
+    Cursor cursor = Cursor(&table, false);
+    node.Insert(cursor, statement.insert_row.Id, statement.insert_row);
+
+    return kExecuteSuccess;
+}
+
+inline void print_row(Row const &row) {
+    std::cout << "[" << row.Id << ", " << row.Username << ", " << row.Email
+              << "]" << std::endl;
+}
+
+// TODO:: remove
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-arith"
-void deserialize_row(Row &dest, const void *source) {
+inline void deserialize_row(Row &dest, const void *source) {
     std::memcpy(&dest.Id, source + sizes::kIdOffset, sizes::kIdSize);
     std::memcpy(&dest.Username, source + sizes::kUsernameOffset,
                 sizes::kUsernameSize);
@@ -125,24 +165,6 @@ void deserialize_row(Row &dest, const void *source) {
     dest.Email[sizes::kEmailSize] = '\0';
 }
 #pragma GCC diagnostic pop
-
-ExecuteResult execute_insert(Statement const &statement, Table &table) {
-    if (table.num_rows() >= sizes::kTableMaxRows) {
-        return kExecuteTableFull;
-    }
-
-    Cursor cursor = Cursor(&table, false);
-
-    serialize_row(cursor.Value(), statement.insert_row);
-    table.num_rows_++;
-
-    return kExecuteSuccess;
-}
-
-void print_row(Row const &row) {
-    std::cout << "[" << row.Id << ", " << row.Username << ", " << row.Email
-              << "]" << std::endl;
-}
 
 ExecuteResult execute_select(__attribute__((unused)) Statement const &statement,
                              Table &table) {
@@ -169,7 +191,7 @@ ExecuteResult execute_statement(Statement const &statement, Table &table) {
     }
 }
 
-Table db_open(std::string const filename) { return Table(filename); }
+inline Table db_open(std::string const filename) { return Table(filename); }
 
 void db_close(Table &table) { table.~Table(); }
 
