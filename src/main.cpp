@@ -139,7 +139,15 @@ ExecuteResult execute_insert(Statement const &statement, Table &table) {
         return kExecuteTableFull;
     }
 
-    Cursor cursor = Cursor(&table, false);
+    uint32_t key_id = statement.insert_row.Id;
+    Cursor cursor = Cursor(&table, key_id);
+
+    if (cursor.cellnum_ < *node.NumCells()) {
+        if (key_id == *node.Key(cursor.cellnum_)) {
+            return kExecuteDuplicateKey;
+        }
+    }
+
     node.Insert(cursor, statement.insert_row.Id, statement.insert_row);
 
     return kExecuteSuccess;
@@ -252,6 +260,9 @@ int main(void) {
                 break;
             case (kExecuteTableFull):
                 std::cout << "Error: table full" << std::endl;
+                break;
+            case (kExecuteDuplicateKey):
+                std::cout << "Error: duplicate key" << std::endl;
                 break;
             case (kExecuteNotImplemented):
                 std::cout << "Error: operation not implemented" << std::endl;

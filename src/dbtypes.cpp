@@ -208,6 +208,20 @@ Cursor::Cursor(Table *table, bool start) {
     this->end_of_table_ = (start) ? num_cells == 0 : true;
 }
 
+Cursor::Cursor(Table *table, uint32_t key_id) {
+    Node root_node = Node(table->GetPage(table->root_page_num()));
+    if (root_node.Type() == kNodeLeaf) {
+        this->table_ = table;
+        this->pagenum_ = this->table_->root_page_num();
+        this->cellnum_ =
+            LeafNode(table->GetPage(table->root_page_num())).Find(key_id);
+
+    } else {
+        printf("Need to implement searching an internal node\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 Cursor::~Cursor() {}
 
 void *Cursor::Value() {
@@ -241,13 +255,29 @@ void LeafNode::Insert(Cursor const &cursor,
         }
     }
 
-    uint32_t s = (*this->NumCells()) + 1;
-
     *(this->NumCells()) = (*this->NumCells()) + 1;
     *this->Key(cursor.cellnum_) = key;
     this->SerializeRow(this->Value(cursor.cellnum_), value);
+}
 
-    *(this->NumCells()) = s;
+uint32_t LeafNode::Find(uint32_t key_id) {
+    // Binary search
+    uint32_t lower_index = 0;
+    uint32_t upper_index = *this->NumCells();  // is one over max index
+    while (upper_index != lower_index) {
+        uint32_t index = (lower_index + upper_index) / 2;
+        uint32_t index_key = *this->Key(index);
+        if (key_id == index_key) {
+            return index;
+        }
+        if (key_id < index_key) {
+            upper_index = index;
+
+        } else {
+            lower_index = index + 1;
+        }
+    }
+    return lower_index;
 }
 
 #pragma GCC diagnostic push

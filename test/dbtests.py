@@ -189,15 +189,31 @@ class TestInsertSelect(unittest.TestCase):
             "db > Executed",
             "db > Tree:",
             "  Leaf size: 3",
-            "    0 : 3",
-            "    1 : 1",
-            "    2 : 2",
+            "    0 : 1",
+            "    1 : 2",
+            "    2 : 3",
             "db > "
         ]
 
         commands = [
             *[f"insert {x} user{x} user{x}@email.com" for x in [3, 1, 2]],
             ".btree",
+            ".exit"
+        ]
+
+        actual_result = do_sequence(commands)
+        self.assertEqual(actual_result, expected_result)
+
+    def test_error_message_on_duplicate_key(self):
+        expected_result = [
+            "db > Executed",
+            "db > Error: duplicate key",
+            "db > "
+        ]
+
+        commands = [
+            "insert 1 user1 user1@email.com",
+            "insert 1 user1 user1@email.com",
             ".exit"
         ]
 

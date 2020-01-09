@@ -72,6 +72,7 @@ enum ExecuteResult {
     kExecuteSuccess,
     kExecuteTableFull,
     kExecuteNotImplemented,
+    kExecuteDuplicateKey,
 };
 
 enum NodeType {
@@ -146,6 +147,8 @@ class Cursor {
 
     Cursor(Table *table, bool start);
 
+    Cursor(Table *table, uint32_t key_id);
+
     void *Value();
 
     void Advance();
@@ -153,6 +156,28 @@ class Cursor {
     ~Cursor();
 
     inline bool end_of_table() const { return this->end_of_table_; }
+};
+
+class Node {
+   public:
+    Node(void *data) { this->data_ = data; }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-arith"
+    NodeType Type() {
+        return (NodeType)(*((uint8_t *)(this->data_ + sizes::KNodeTypeOffset)));
+    }
+#pragma GCC diagnostic pop
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-arith"
+    void SetType(NodeType type) {
+        *((uint8_t *)(this->data_ + sizes::KNodeTypeOffset)) = (uint8_t)type;
+    }
+#pragma GCC diagnostic pop
+
+   private:
+    void *data_;
 };
 
 class LeafNode {
@@ -164,7 +189,7 @@ class LeafNode {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-arith"
     uint32_t *NumCells() {
-        return (uint32_t *)this->data_ + sizes::kLeafNodeNumCellsOffset;
+        return (uint32_t *)(this->data_ + sizes::kLeafNodeNumCellsOffset);
     }
 #pragma GCC diagnostic pop
 
@@ -175,15 +200,18 @@ class LeafNode {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-arith"
     void *Value(uint32_t cell_num) {
-        // return (uint32_t *)this->Cell(cell_num) + sizes::kLeafNodeKeySize +
-        // 1;
-        return (uint32_t *)this->Cell(cell_num) + sizes::kLeafNodeKeySize + 1;
+        return this->Cell(cell_num) + sizes::kLeafNodeKeySize;
     }
 #pragma GCC diagnostic pop
 
     void Insert(Cursor const &cursor, uint32_t key, Row value);
 
-    void Initialize() { *this->NumCells() = 0; }
+    void Initialize() {
+        *this->NumCells() = 0;
+        Node(this->data_).SetType(kNodeLeaf);
+    }
+
+    uint32_t Find(uint32_t key_id);
 
    private:
     void *data_;
